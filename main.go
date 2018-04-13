@@ -148,6 +148,7 @@ func download(w http.ResponseWriter, r *http.Request) {
       fmt.Fprintln(w, err)
     }
   } else {
+    w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", fileStat.Name()))
     _, err := io.Copy(w, file)
     if err != nil {
       fmt.Fprintln(w, err)
@@ -180,7 +181,6 @@ func upload(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TskHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-
 }
 
 func Start() {
