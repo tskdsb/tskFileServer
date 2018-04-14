@@ -118,13 +118,7 @@ func formatTime(time time.Time) string {
 }
 
 func download(w http.ResponseWriter, r *http.Request) {
-  path := r.FormValue("path")
-  if path == "" {
-    fmt.Fprintf(w, "%s", BASE_PATH)
-    return
-  } else {
-    path = filepath.Clean(path)
-  }
+  path := filepath.Clean(r.FormValue("path"))
 
   file, err := os.Open(filepath.Join(BASE_PATH, path))
   if err != nil {
