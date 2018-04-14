@@ -21,7 +21,7 @@ const (
 
 <body>
   {{$Path:=.Path}}
-  <a href="?path={{$Path}}/..">..</a>
+
   <a href="?path=/">/</a>
 
   <table>
@@ -34,6 +34,11 @@ const (
     </thead>
 
     <tbody>
+      <tr>
+        <td>
+          <a href="?path={{$Path}}/..">..</a>
+        </td>
+      </tr>
       {{with .FileInfoS}}
       {{range .}}
       <tr>
