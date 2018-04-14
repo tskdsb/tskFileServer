@@ -43,7 +43,7 @@ const (
       {{range .}}
       <tr>
         <td>
-          <a href="/download?path={{$Path}}/{{.Name}}">{{.Name}}</a>
+          <a href="/download?path={{$Path}}/{{.Name}}">{{dirSuffix .}}</a>
         </td>
         <td>{{humanSize .Size}}</td>
         <td>{{formatTime .ModTime}}</td>
@@ -73,6 +73,7 @@ var (
   funcMap = template.FuncMap{
     "humanSize":  humanSize,
     "formatTime": formatTime,
+    "dirSuffix":  dirSuffix,
   }
 
   t = template.Must(template.New("TEMPLATE_LS").Funcs(funcMap).Parse(TEMPLATE_LS))
@@ -84,6 +85,14 @@ type TskHandler struct {
 type TskFileInfo struct {
   FileInfoS []os.FileInfo
   Path      string
+}
+
+func dirSuffix(f os.FileInfo) string {
+  if f.IsDir() {
+    return f.Name() + "/"
+  } else {
+    return f.Name()
+  }
 }
 
 func humanSize(byteSize int64) string {
