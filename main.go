@@ -63,7 +63,7 @@ const (
 
 var (
   ADDR      = ":80"
-  BASE_PATH = "./"
+  BASE_PATH = "."
 
   funcMap = template.FuncMap{
     "humanSize":  humanSize,
