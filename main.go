@@ -156,7 +156,9 @@ func download(w http.ResponseWriter, r *http.Request) {
       fmt.Fprintln(w, err)
     }
   } else {
-    w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", fileStat.Name()))
+    //w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+    //w.Header().Set("Content-Type", "application/octet-stream; charset=utf-8")
+    w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=\"%s\"", fileStat.Name()))
     _, err := io.Copy(w, file)
     if err != nil {
       fmt.Fprintln(w, err)
