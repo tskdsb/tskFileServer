@@ -6,7 +6,6 @@ import (
   "fmt"
   "time"
   "html/template"
-  "log"
   "io"
   "path/filepath"
   "reflect"
@@ -47,10 +46,15 @@ const (
       {{range .}}
       <tr>
         <td>
-          <a href="/download?path={{$Path}}/{{.Name}}">{{dirSuffix .}}</a>
+          <a href="/download?path={{$Path}}/{{.Name}}&disposition=inline">{{dirSuffix .}}</a>
         </td>
         <td>{{humanSize .Size}}</td>
         <td>{{formatTime .ModTime}}</td>
+        {{if not (isDir .)}}
+        <td>
+          <a href="/download?path={{$Path}}/{{.Name}}&disposition=attachment">download</a>
+        </td>
+        {{end}}
       </tr>
       {{end}}
       {{end}}
@@ -63,6 +67,11 @@ const (
     <input type="file" name="upload">
     <input type="submit" value="upload">
   </form>
+  
+  <form action="/mkdir?path={{$Path}}" method="post" enctype="multipart/form-data">
+    <input type="text" name="mkdir">
+    <input type="submit" value="mkdir">
+  </form>
 
 </body>
 
@@ -71,13 +80,14 @@ const (
 )
 
 var (
-  ADDR      = ":80"
-  BASE_PATH = "."
+  ADDR      string
+  BASE_PATH string
 
   funcMap = template.FuncMap{
     "humanSize":  humanSize,
     "formatTime": formatTime,
     "dirSuffix":  dirSuffix,
+    "isDir":      isDir,
   }
 
   t = template.Must(template.New("TEMPLATE_LS").Funcs(funcMap).Parse(TEMPLATE_LS))
@@ -97,6 +107,9 @@ func dirSuffix(f os.FileInfo) string {
   } else {
     return f.Name()
   }
+}
+func isDir(f os.FileInfo) bool {
+  return f.IsDir()
 }
 
 func humanSize(byteSize int64) string {
@@ -130,7 +143,7 @@ func formatTime(time time.Time) string {
   return time.Format("2006-01-02 15:04:05")
 }
 
-func download(w http.ResponseWriter, r *http.Request) {
+func Download(w http.ResponseWriter, r *http.Request) {
   path := filepath.Clean(r.FormValue("path"))
 
   file, err := os.Open(filepath.Join(BASE_PATH, path))
@@ -162,7 +175,8 @@ func download(w http.ResponseWriter, r *http.Request) {
   } else {
     //w.Header().Set("Content-Type", "text/plain; charset=utf-8")
     //w.Header().Set("Content-Type", "application/octet-stream; charset=utf-8")
-    w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=\"%s\"", fileStat.Name()))
+    disposition := r.FormValue("disposition")
+    w.Header().Set("Content-Disposition", fmt.Sprintf("%s; filename=\"%s\"", disposition, fileStat.Name()))
     _, err := io.Copy(w, file)
     if err != nil {
       fmt.Fprintln(w, err)
@@ -170,7 +184,7 @@ func download(w http.ResponseWriter, r *http.Request) {
   }
 }
 
-func upload(w http.ResponseWriter, r *http.Request) {
+func Upload(w http.ResponseWriter, r *http.Request) {
   path := r.FormValue("path")
   file, fileHeader, err := r.FormFile("upload")
   if err != nil {
@@ -195,14 +209,27 @@ func upload(w http.ResponseWriter, r *http.Request) {
   http.Redirect(w, r, "/download?path="+path, http.StatusTemporaryRedirect)
 }
 
-func showRouterS(w http.ResponseWriter, r *http.Request) {
+func Mkdir(w http.ResponseWriter, r *http.Request) {
+  path := r.FormValue("path")
+  dir := r.FormValue("mkdir")
+  dirToMk := filepath.Join(BASE_PATH, path, dir)
+  err := os.MkdirAll(dirToMk, os.ModePerm)
+  if err != nil {
+    fmt.Fprintln(w, err)
+    return
+  }
+
+  http.Redirect(w, r, "/download?path="+path, http.StatusTemporaryRedirect)
+}
+
+func ShowRouterS(w http.ResponseWriter, r *http.Request) {
   mKeyS := reflect.ValueOf(http.DefaultServeMux).Elem().FieldByName("m").MapKeys()
   for p := range mKeyS {
     fmt.Fprintf(w, "<a href=\"%s\">%s</a><br />", mKeyS[p], mKeyS[p])
   }
 }
 
-func cmdLocal(w http.ResponseWriter, r *http.Request) {
+func CmdLocal(w http.ResponseWriter, r *http.Request) {
   data, err := ioutil.ReadAll(r.Body)
   if err != nil {
     fmt.Fprintln(w, err)
@@ -232,7 +259,7 @@ func cmdLocal(w http.ResponseWriter, r *http.Request) {
   fmt.Fprintf(w, "%s", resultJson)
 }
 
-func cmdSsh(w http.ResponseWriter, r *http.Request) {
+func CmdSsh(w http.ResponseWriter, r *http.Request) {
   data, err := ioutil.ReadAll(r.Body)
   if err != nil {
     fmt.Fprintln(w, err)
@@ -259,18 +286,4 @@ func cmdSsh(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TskHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-}
-
-func Start() {
-
-  http.HandleFunc("/", showRouterS)
-
-  http.HandleFunc("/download", download)
-  http.HandleFunc("/upload", upload)
-
-  http.HandleFunc("/cmd/local", cmdLocal)
-  http.HandleFunc("/cmd/ssh", cmdSsh)
-
-  log.Printf("\nwill listen on: %s\npath to expose: %s", ADDR, BASE_PATH)
-  log.Fatal(http.ListenAndServe(ADDR, nil))
 }
