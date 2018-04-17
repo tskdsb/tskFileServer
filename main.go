@@ -14,6 +14,7 @@ func main() {
   flag.Parse()
 
   http.HandleFunc("/", fileServer.ShowRouterS)
+  http.Handle("/SimpleDownload/", http.StripPrefix("/SimpleDownload/", http.FileServer(http.Dir(fileServer.BASE_PATH))))
 
   http.HandleFunc("/download", fileServer.Download)
   http.HandleFunc("/upload", fileServer.Upload)
