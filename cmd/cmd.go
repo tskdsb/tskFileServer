@@ -2,9 +2,9 @@ package cmd
 
 import (
   "os/exec"
-  "syscall"
   "golang.org/x/crypto/ssh"
   "strings"
+  "syscall"
 )
 
 type CmdObject struct {
@@ -25,22 +25,21 @@ type ReturnInfo struct {
   Message string
 }
 
-func RunLocal(c CmdObject) (r ReturnInfo, err error) {
-
+func RunLocal(c CmdObject) (r ReturnInfo) {
   cmd := exec.Command(c.Cmd, c.Args...)
-
   combinedOutput, err := cmd.CombinedOutput()
-  if err != nil {
-    return
-  }
-
-  //r.Code = tool.Field(cmd.ProcessState, "status").(int)
-  if exitCode, ok := cmd.ProcessState.Sys().(syscall.WaitStatus); ok {
-    r.Code = exitCode.ExitStatus()
-  } else {
+  if cmd.ProcessState == nil {
     r.Code = -1
+    r.Message = err.Error()
+  } else {
+    // r.Code = tool.Field(cmd.ProcessState, "status").(int)
+    if exitCode, ok := cmd.ProcessState.Sys().(syscall.WaitStatus); ok {
+      r.Code = exitCode.ExitStatus()
+    } else {
+      r.Code = -2
+    }
+    r.Message = string(combinedOutput)
   }
-  r.Message = string(combinedOutput)
 
   return
 }

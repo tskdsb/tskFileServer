@@ -173,8 +173,8 @@ func Download(w http.ResponseWriter, r *http.Request) {
       fmt.Fprintln(w, err)
     }
   } else {
-    //w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-    //w.Header().Set("Content-Type", "application/octet-stream; charset=utf-8")
+    // w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+    // w.Header().Set("Content-Type", "application/octet-stream; charset=utf-8")
     disposition := r.FormValue("disposition")
     w.Header().Set("Content-Disposition", fmt.Sprintf("%s; filename=\"%s\"", disposition, fileStat.Name()))
     _, err := io.Copy(w, file)
@@ -222,10 +222,12 @@ func Mkdir(w http.ResponseWriter, r *http.Request) {
   http.Redirect(w, r, "/download?path="+path, http.StatusTemporaryRedirect)
 }
 
-func ShowRouterS(w http.ResponseWriter, r *http.Request) {
-  mKeyS := reflect.ValueOf(http.DefaultServeMux).Elem().FieldByName("m").MapKeys()
-  for p := range mKeyS {
-    fmt.Fprintf(w, "<a href=\"%s\">%s</a><br />", mKeyS[p], mKeyS[p])
+func RouterHandler(w http.ResponseWriter, r *http.Request) {
+  if r.Method == http.MethodGet {
+    mKeyS := reflect.ValueOf(http.DefaultServeMux).Elem().FieldByName("m").MapKeys()
+    for p := range mKeyS {
+      fmt.Fprintf(w, "<a href=\"%s\">%s</a><br />", mKeyS[p], mKeyS[p])
+    }
   }
 }
 
@@ -244,13 +246,7 @@ func CmdLocal(w http.ResponseWriter, r *http.Request) {
     return
   }
 
-  resultCmd, err := cmd.RunLocal(cmdObject)
-  if err != nil {
-    fmt.Fprintln(w, err)
-    return
-  }
-
-  resultJson, err := tool.Object2json(resultCmd)
+  resultJson, err := tool.Object2json(cmd.RunLocal(cmdObject))
   if err != nil {
     fmt.Fprintln(w, err)
     return

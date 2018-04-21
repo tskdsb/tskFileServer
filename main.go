@@ -13,7 +13,7 @@ func main() {
   flag.StringVar(&fileServer.BASE_PATH, "dir", ".", "Directory to expose, such as: /tmp/share")
   flag.Parse()
 
-  http.HandleFunc("/", fileServer.ShowRouterS)
+  http.HandleFunc("/", fileServer.RouterHandler)
   http.Handle("/file/", http.StripPrefix("/file/", http.FileServer(http.Dir(fileServer.BASE_PATH))))
 
   http.HandleFunc("/download", fileServer.Download)
