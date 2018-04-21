@@ -177,6 +177,7 @@ func Download(w http.ResponseWriter, r *http.Request) {
     // w.Header().Set("Content-Type", "application/octet-stream; charset=utf-8")
     disposition := r.FormValue("disposition")
     w.Header().Set("Content-Disposition", fmt.Sprintf("%s; filename=\"%s\"", disposition, fileStat.Name()))
+    w.Header().Set("Content-Length", fmt.Sprintf("%s", fileStat.Size()))
     _, err := io.Copy(w, file)
     if err != nil {
       fmt.Fprintln(w, err)
