@@ -50,7 +50,7 @@ const (
         <td>
           <a href="/download?path={{$Path}}/{{.Name}}&disposition=inline">{{dirSuffix .}}</a>
         </td>
-        <td>{{humanSize .Size}}</td>
+        <td>{{comma3size .Size}}</td>
         <td>{{formatTime .ModTime}}</td>
         {{if not (isDir .)}}
         <td>
@@ -90,6 +90,7 @@ var (
     "formatTime": formatTime,
     "dirSuffix":  dirSuffix,
     "isDir":      isDir,
+    "comma3size": comma3size,
   }
 
   t = template.Must(template.New("TEMPLATE_LS").Funcs(funcMap).Parse(TEMPLATE_LS))
@@ -112,6 +113,23 @@ func dirSuffix(f os.FileInfo) string {
 }
 func isDir(f os.FileInfo) bool {
   return f.IsDir()
+}
+
+func comma3size(byteSize int64) string {
+
+  sizeString := fmt.Sprintf("%d", byteSize)
+  length1 := len(sizeString)
+  length2 := length1 + (length1-1)/3
+  newSizeString := make([]byte, length2)
+  for i, j := 1, 1; j <= length2; j++ {
+    if j/4 > 0 && j%4 == 0 {
+      newSizeString[length2-j] = ','
+    } else {
+      newSizeString[length2-j] = sizeString[length1-i]
+      i++
+    }
+  }
+  return string(newSizeString)
 }
 
 func humanSize(byteSize int64) string {
