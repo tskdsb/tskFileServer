@@ -12,6 +12,8 @@ import (
   "io/ioutil"
   "tskFileServer/tool"
   "tskFileServer/cmd"
+  "mime"
+  "mime/multipart"
 )
 
 const (
@@ -186,32 +188,41 @@ func Download(w http.ResponseWriter, r *http.Request) {
 }
 
 func Upload(w http.ResponseWriter, r *http.Request) {
-  path := r.FormValue("path")
-  file, fileHeader, err := r.FormFile("upload")
+  if r.Close {
+    defer r.Body.Close()
+  }
+  path := r.URL.Query().Get("path")
+  _, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+  if err != nil {
+    fmt.Fprintln(w, err)
+    return
+  }
+  reader := multipart.NewReader(r.Body, params["boundary"])
+  part, err := reader.NextPart()
+  if err != nil {
+    fmt.Fprintln(w, err)
+    return
+  }
+  fileName := part.FileName()
+
+  file, err := os.Create(filepath.Join(BASE_PATH, path, fileName))
   if err != nil {
     fmt.Fprintln(w, err)
     return
   }
   defer file.Close()
 
-  file2, err := os.Create(filepath.Join(BASE_PATH, path, fileHeader.Filename))
+  n, err := io.Copy(file, part)
   if err != nil {
     fmt.Fprintln(w, err)
     return
   }
-  defer file2.Close()
-
-  _, err = io.Copy(file2, file)
-  if err != nil {
-    fmt.Fprintln(w, err)
-    return
-  }
-
-  http.Redirect(w, r, "/download?path="+path, http.StatusTemporaryRedirect)
+  fmt.Fprintln(w, n)
+  // http.Redirect(w, r, "/download?path="+path, http.StatusTemporaryRedirect)
 }
 
 func Mkdir(w http.ResponseWriter, r *http.Request) {
-  path := r.FormValue("path")
+  path := r.URL.Query().Get("path")
   dir := r.FormValue("mkdir")
   dirToMk := filepath.Join(BASE_PATH, path, dir)
   err := os.MkdirAll(dirToMk, os.ModePerm)

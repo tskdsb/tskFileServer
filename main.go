@@ -23,6 +23,6 @@ func main() {
   http.HandleFunc("/cmd/local", fileServer.CmdLocal)
   http.HandleFunc("/cmd/ssh", fileServer.CmdSsh)
 
-  log.Printf("\nwill listen on: %s\npath to expose: %s", fileServer.ADDR, fileServer.BASE_PATH)
+  log.Printf("\nWill listen on: %s\nPath to expose: %s", fileServer.ADDR, fileServer.BASE_PATH)
   log.Fatal(http.ListenAndServe(fileServer.ADDR, nil))
 }
