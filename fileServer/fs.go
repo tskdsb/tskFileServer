@@ -1,19 +1,19 @@
 package fileServer
 
 import (
-  "net/http"
-  "os"
   "fmt"
-  "time"
   "html/template"
   "io"
-  "path/filepath"
-  "reflect"
   "io/ioutil"
-  "tskFileServer/tool"
-  "tskFileServer/cmd"
   "mime"
   "mime/multipart"
+  "net/http"
+  "os"
+  "path/filepath"
+  "reflect"
+  "time"
+  "tskFileServer/cmd"
+  "tskFileServer/tool"
 )
 
 const (
@@ -66,7 +66,7 @@ const (
   <br />
 
   <form action="/upload?path={{$Path}}" method="post" enctype="multipart/form-data">
-    <input type="file" name="upload">
+    <input type="file" name="upload" multiple>
     <input type="submit" value="upload">
   </form>
   
@@ -206,36 +206,41 @@ func Download(w http.ResponseWriter, r *http.Request) {
 }
 
 func Upload(w http.ResponseWriter, r *http.Request) {
-  if r.Close {
-    defer r.Body.Close()
-  }
+  defer r.Body.Close()
   path := r.URL.Query().Get("path")
   _, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
   if err != nil {
     fmt.Fprintln(w, err)
     return
   }
+
   reader := multipart.NewReader(r.Body, params["boundary"])
-  part, err := reader.NextPart()
-  if err != nil {
-    fmt.Fprintln(w, err)
-    return
-  }
-  fileName := part.FileName()
 
-  file, err := os.Create(filepath.Join(BASE_PATH, path, fileName))
-  if err != nil {
-    fmt.Fprintln(w, err)
-    return
-  }
-  defer file.Close()
+  for {
+    part, err := reader.NextPart()
+    if err != nil {
+      if err == io.EOF {
+        break
+      }
+      fmt.Fprintln(w, err)
+      return
+    }
+    fileName := part.FileName()
 
-  n, err := io.Copy(file, part)
-  if err != nil {
-    fmt.Fprintln(w, err)
-    return
+    file, err := os.Create(filepath.Join(BASE_PATH, path, fileName))
+    if err != nil {
+      fmt.Fprintln(w, err)
+      return
+    }
+    defer file.Close()
+
+    n, err := io.Copy(file, part)
+    if err != nil {
+      fmt.Fprintln(w, err)
+      return
+    }
+    fmt.Fprintln(w, n)
   }
-  fmt.Fprintln(w, n)
   // http.Redirect(w, r, "/download?path="+path, http.StatusTemporaryRedirect)
 }
 
